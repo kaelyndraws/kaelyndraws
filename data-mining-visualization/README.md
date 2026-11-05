@@ -18,7 +18,8 @@ The primary objective is to transform raw data into interpretable information th
 ## Dataset
 - Source: BINUS University
 - Number of observations: 8,238
-- Main variables: Age of the client, Type of job, Marital status, Highest education level attained, Whether the client has a credit in default, Whether the client has a housing loan, Whether the client has a personal loan, Type of communication used, Month of the last contact, Day of the week when last contact occurred, Duration of the last contact in seconds, Number of contacts made during the current campaign, Days since the last contact in a previous campaign, Number of previous contacts before the current campaign, Outcome of the previous campaign, Whether the client subscribed to a term deposit
+- Main variables: Age of the client, Type of job, Marital status, Highest education level attained, Whether the client has a credit in default, Whether the client has a housing loan, Whether the client has a personal loan, Type of communication used, Month of the last contact, Day of the week when last contact occurred, Duration of the last contact in seconds, Number of contacts made during the current campaign, Days since the last contact in a previous campaign, Number of previous contacts before the current campaign, Outcome of the previous campaign
+- Target variable: Whether the client subscribed to a term deposit
 
 ## Tools and Technologies
 R / dplyr / ggplot2 / RStudio
