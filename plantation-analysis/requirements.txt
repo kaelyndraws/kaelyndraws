@@ -1,0 +1,13 @@
+# Python dependencies used in model_searching(1).ipynb
+# Versions are not pinned because the original environment was not supplied.
+pandas
+openpyxl
+numpy
+matplotlib
+scikit-learn
+tensorflow
+keras-tuner
+tensorboard
+seaborn
+statsmodels  # for seaborn residual plot with lowess=True
+jupyterlab  # optional: run the notebook locally
