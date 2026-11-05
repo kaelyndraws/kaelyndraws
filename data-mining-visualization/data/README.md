@@ -18,9 +18,8 @@ The analysis aims to identify meaningful patterns, relationships, and trends wit
 | File Format | CSV |
 | Number of Records | 8,238 |
 | Number of Variables | 17 |
-| Target Variable |  |
-| Data Collection Period | [Insert period, if known] |
-| Public Availability | [Public / Restricted / Private] |
+| Target Variable | Whether the client subscribed to a term deposit |
+| Public Availability | Private |
 | Original Purpose | Academic coursework |
 
 ## 🗂️ Data Dictionary
@@ -29,11 +28,25 @@ The data dictionary describes the variables included in the dataset, their data 
 
 | Variable | Description | Data Type | Unit / Values |
 |---|---|---|---|
-| [Column 1] | [Description] | [Numeric / Categorical] | [Unit or categories] |
-| [Column 2] | [Description] | [Numeric / Categorical] | [Unit or categories] |
-| [Column 3] | [Description] | [Numeric / Categorical] | [Unit or categories] |
-
-The complete data dictionary should reflect the original dataset and any variables created during preprocessing.
+| age | Age of the client | Numeric | years |
+| job | Type of job | Categorical | admin, blue-collar, entrpreneur, housemaid, management, retired, self-employed, services, student, technician, unemployed, unknown |
+| marital | Marital status| Categorical | divorced, married, single, unknown |
+| education | Highest education level attained | Categorical | basic.4y, basic.6y, basic.9y, high.school, illiterate, professional.course, university.degree, unknown |
+| default | Whether the client has a credit in default | Categorical | yes, no, unknown |
+| housing | Whether the client has a housing loan | Categorical | yes, no, unknown |
+| loan | Whether the client has a personal loan | Categorical | yes, no, unknown |
+| contact | Type of communication used | Categorical | cellular, telephone |
+| month | Month of the last contact | Categorical | apr, aug, dec, jul, jun, mar, may, nov, oct, sep |
+| day_of_week | Day of the week when the last contact occurred | Categorical | fri, mon, thu, tue, wed |
+| duration | Duration of the last contact in seconds | Numeric | seconds |
+| campaign | Number of contacts made during the current campaign | Numeric | count |
+| pdays | Days since the last contact in a previous campaign | Numeric | days |
+| previous | Number of previous contacts before the current campaign | Numeric | count |
+| poutcome | Outcome of the previous campaign | Categorical | failure, nonexistent, success |
+| y | Whether the client subscribed to a term deposit | Categorical | yes, no |
+| campaign_flag | Whether the observation contains an unusually high contact count | Categorical | TRUE, FALSE |
+| pdays_status | Whether the observation has been contacted | Categorical | contacted, not_contacted |
+| pdays_num | Days since the last contact in a previous campaign without non-contacted | Numerical | days |
 
 ## 🧹 Data Quality and Preprocessing
 
@@ -43,33 +56,23 @@ The following preprocessing activities should be documented where applicable.
 
 ### 1. Missing Values
 
-Describe the presence of missing values and the methods used to handle them.
+Missing values were present in the age, job, duration, campaign, pdays, and previous variables.
 
-**Method:** [Insert actual missing-value handling approach]
+**Method:** Removal, median imputation
 
 ### 2. Duplicate Records
 
-Describe whether duplicate observations were identified and how they were handled.
-
-**Method:** [Insert actual duplicate-handling approach]
+There were no duplicate records in the dataset.
 
 ### 3. Outlier Detection
 
-Describe any unusual observations and whether they were retained, transformed, or removed.
+There were outliers in the age, duration, previous, campaign, and pdays variables.
 
-**Method:** [Insert actual outlier-handling approach]
+**Method:** Kept, flagging
 
 ### 4. Data Transformation
 
-Document any transformations applied to the original variables, such as:
-
-- Data type conversion.
-- Categorical encoding.
-- Numerical scaling or normalization.
-- Feature engineering.
-- Aggregation or grouping.
-
-**Transformations performed:** [Insert actual transformations]
+**Transformations performed:** Data type conversion, feature engineering
 
 ## 📈 Data Characteristics
 
@@ -77,18 +80,18 @@ This section summarizes the dataset's main characteristics.
 
 | Characteristic | Description |
 |---|---|
-| Numerical Variables | [Insert count or examples] |
-| Categorical Variables | [Insert count or examples] |
-| Missing Values | [Insert summary] |
-| Duplicate Records | [Insert summary] |
-| Class Distribution | [Insert if applicable] |
-| Important Relationships | [Insert observations] |
+| Numerical Variables | 5 |
+| Categorical Variables | 12 |
+| Missing Values | present in the age, job, duration, campaign, pdays, and previous |
+| Duplicate Records | None |
+| Class Distribution | Imbalanced |
+| Important Relationships | age and previous, duration and campaign, duration and previous, campaign and previous, y and job, y and marital, y and education, y and default, y and housing, y and contact, y and month, y and poutcome |
 
 ## 🔒 Data Source and Availability
 
-**Original Source:** [Insert dataset provider or URL]
+**Original Source:** BINUS University
 
-**Access Status:** [Public / Restricted / Private]
+**Access Status:** Private
 
 The dataset was used for educational purposes as part of the Data Mining and Visualization course.
 
