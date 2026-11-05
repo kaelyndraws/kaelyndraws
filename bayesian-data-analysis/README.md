@@ -60,6 +60,7 @@ R / Bayesian Logistic Regression / brms / Hamiltonian Monte Carlo (HMC) / Stan /
   | Gap | 0.01 | [0.01, 0.02] |
   | MMI | -0.18 | [-0.34, -0.02] |
   | CDI | 0.16 | [0.10, 0.23] |
+  
   Key interpretations:
   - dmin exhibited a relatively strong positive association with tsunami occurrence in the fitted model.
   - Magnitude showed a positive posterior mean, although its 95% credible interval slightly overlapped zero.
