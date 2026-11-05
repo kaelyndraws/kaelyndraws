@@ -1,0 +1,482 @@
+---
+title: "Important Graphs"
+author: "Kaelyn"
+date: "2025-07-27"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: '2'
+  word_document:
+    toc: true
+    toc_depth: '2'
+  html_document:
+    toc: true
+    toc_depth: '2'
+    df_print: paged
+---
+
+# Important Graphs
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,        # Hides R code
+  message = FALSE,     # Hides package messages
+  warning = FALSE,     # Hides warnings
+  dev = "png"          # Use PNG format for plots
+)
+
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(lubridate)
+library(tidyr)
+library(stringr)
+library(forcats)
+library(data.table)
+
+df_panen <- read_excel("Selected Sheets 2.xlsx")
+
+df_panen <- df_panen %>%
+  rename_with(~str_trim(.x)) %>%
+  mutate(
+    tahun_panen = year(`Tanggal Panen`),
+    bulan_panen = month(`Tanggal Panen`),
+  ) %>%
+  group_by(tahun_panen, `Week after Inject`, Phase) %>%
+  mutate(sample_density = n()) %>%
+  ungroup()
+
+df_panen$Generasi = as.factor(df_panen$Generasi)
+
+levels(df_panen$Generasi) <- c("Induk", "Induk", "R1", "R2", "R3", "R4")
+```
+
+## 1. Week After Inject Optimum Berdasarkan Sample Density (Bruto)
+
+Visualisasi: Bar chart jumlah sampel + line chart bruto rata-rata
+
+```{r}
+median_bruto = median(df_panen$`Bruto (Kg)`, na.rm = TRUE)
+df_panen$`Bruto (Kg)` = nafill(df_panen$`Bruto (Kg)`, fill = median_bruto)
+
+median_kaliper = median(df_panen$Kaliper, na.rm = TRUE)
+df_panen$Kaliper = nafill(df_panen$Kaliper, fill = median_kaliper)
+
+summary_wai <- df_panen %>%
+  group_by(`Week after Inject`) %>%
+  summarise(
+    n = n(),
+    avg_bruto = mean(`Bruto (Kg)`),
+    avg_kaliper = mean(Kaliper)
+  )
+
+scale_factor_bruto <- max(summary_wai$n)/max(summary_wai$avg_bruto)
+
+p1 <- ggplot(summary_wai, aes(x = `Week after Inject`)) +
+  geom_col(aes(y = n), fill = "lightblue", alpha = 0.7) +
+  geom_text(aes(
+    y = avg_bruto * scale_factor_bruto,
+    label = paste0(round(avg_bruto, 2), " kg")
+  ),
+  vjust = -0.5, color = "darkorange", size = 3.5) +
+  scale_y_continuous(
+    name = "Jumlah Sampel",
+    sec.axis = sec_axis(~./scale_factor_bruto, name = "Rata-rata Bruto (kg)")
+  ) +
+  theme_minimal() +
+  labs(title = "Sample Density & Bruto per Week After Inject",
+       x = "Week After Inject")
+
+ggplotly(p1)
+```
+
+Berdasarkan analisis distribusi jumlah sampel dan tren rata-rata bruto terhadap Week After Inject, terlihat bahwa aktivitas panen paling banyak terjadi pada minggu ke-13, ditunjukkan oleh puncak tertinggi pada histogram jumlah sampel. Sementara itu, performa bruto mencapai nilai tertinggi pada minggu ke-15, di mana garis tren bruto menunjukkan level paling optimal sebelum mengalami penurunan pada minggu-minggu berikutnya. Rentang minggu ke-12 hingga ke-15 dapat dianggap sebagai periode panen yang optimal, karena pada masa tersebut kedua indikator — jumlah sampel dan hasil bruto — berada pada kondisi terbaiknya. Di luar rentang tersebut, baik kuantitas maupun kualitas hasil panen terlihat menurun. Oleh karena itu, disarankan untuk memfokuskan kegiatan panen utama pada periode minggu ke-12 hingga ke-15 untuk memperoleh hasil yang paling optimal.
+
+## 2. Week After Inject Optimum Berdasarkan Sample Density (Kaliper)
+
+Visualisasi: Bar chart jumlah sampel + line chart kaliper rata-rata
+
+```{r}
+scale_factor_kaliper <- max(summary_wai$n)/max(summary_wai$avg_kaliper)
+
+p2 <- ggplot(summary_wai, aes(x = `Week after Inject`)) +
+  geom_col(aes(y = n), fill = "lightblue", alpha = 0.7) +
+  geom_text(aes(
+    y = avg_kaliper * scale_factor_kaliper,
+    label = paste0(round(avg_kaliper/32, 2), " inch")
+  ),
+  vjust = -0.5, color = "darkorange", size = 3.5) +
+  scale_y_continuous(
+    name = "Jumlah Sampel",
+    sec.axis = sec_axis(~ . / scale_factor_kaliper, name = "Kaliper Rata-rata")
+  ) +
+  theme_minimal() +
+  labs(title = "Sample Density & Kaliper per Week After Inject",
+       x = "Week After Inject")
+
+ggplotly(p2)
+```
+
+Berdasarkan analisis distribusi jumlah sampel dan rata-rata kaliper panen terhadap `Week After Inject`, terlihat bahwa panen paling sering dilakukan pada minggu ke-13, yang sekaligus menunjukkan performa kaliper yang relatif tinggi. Selain itu, rentang minggu ke-13 hingga ke-15 merupakan masa optimal panen karena keduanya - jumlah sampel dan hasil kaliper - menunjukkan performa terbaik. Di luar rentang tersebut, baik kuantitas maupun kualitas hasil panen menurun. Oleh karena itu, disarankan untuk memfokuskan kegiatan panen pada periode tersebut untuk hasil optimal.
+
+## 3. Average Bruto per Phase
+
+Visualisasi: Bar chart bruto rata-rata
+
+```{r}
+df_panen$Phase <- as.factor(df_panen$Phase)
+
+bruto_per_phase <- df_panen %>%
+  group_by(Phase) %>%
+  summarise(avg_bruto = mean(`Bruto (Kg)`, na.rm = TRUE)) %>%
+  arrange(desc(avg_bruto))
+
+p3 <- ggplot(bruto_per_phase, aes(x = Phase, y = avg_bruto)) +
+  geom_col() +
+  theme_minimal() +
+  labs(title = "Average Bruto per Phase", y = "Average Bruto")
+
+ggplotly(p3)
+```
+
+Berdasarkan analisis bruto rata-rata terhadap fase panen, terlihat bahwa fase 3 menunjukkan bruto rata-rata tertinggi. Sedangkan, fase 8 menunjukkan rata-rata bruto terendah. Kondisi ini dapat menjadi perhatian khusus, karena adanya indikasi penurunan signifikan pada fase tersebut.
+
+## 4. Average Bruto per Clone
+
+Visualisasi: Bar chart bruto rata-rata
+
+```{r}
+df_panen$Clone <- as.factor(df_panen$Clone)
+
+bruto_per_clone <- df_panen %>%
+  group_by(Clone) %>%
+  summarise(avg_bruto = mean(`Bruto (Kg)`, na.rm = TRUE)) %>%
+  arrange(desc(avg_bruto))
+
+p4 <- ggplot(bruto_per_clone, aes(x = Clone, y = avg_bruto)) +
+  geom_col() +
+  theme_minimal() +
+  labs(title = "Average Bruto per Clone (Panen)", y = "Average Bruto")
+
+ggplotly(p4)
+```
+
+Berdasarkan analisis rata-rata bruto terhadap clone panen, dapat dilihat bahwa clone Haraka memiliki rata-rata bruto tertinggi. Clone HK 1 memiliki rata-rata bruto yang sedikit lebih tinggi daripada clone HK 2.
+
+## 5. Kaliper Maksimum berdasarkan Week After Inject
+
+Visualisasi: Scatter plot rata-rata kaliper
+
+```{r}
+kaliper_per_wai <- df_panen %>%
+  group_by(`Week after Inject`) %>%
+  summarise(avg_kaliper = mean(Kaliper, na.rm = TRUE)) %>%
+  arrange(desc(avg_kaliper))
+
+p5 <- ggplot(kaliper_per_wai, aes(x = `Week after Inject`, y = avg_kaliper)) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Kaliper per Week After Inject", y = "Average Kaliper") +
+  geom_smooth(method = "lm")
+
+ggplotly(p5)
+```
+
+Berdasarkan analisis rata-rata kaliper terhadap `Week after Inject`, dapat dilihat bahwa nilai rata-rata kaliper cenderung mengalami penurunan. Week after inject ke-13 memiliki kaliper tertinggi dari confidence interval abu-abu, sedangkan secara keseluruhan week after inject ke-9 memiliki kaliper tertinggi.
+
+## 6. Bruto Maksimum berdasarkan Week After Inject
+
+Visualisasi: Scatter plot rata-rata bruto
+
+```{r}
+bruto_per_wai <- df_panen %>%
+  group_by(`Week after Inject`) %>%
+  summarise(avg_bruto = mean(`Bruto (Kg)`, na.rm = TRUE)) %>%
+  arrange(desc(avg_bruto))
+
+p6 <- ggplot(bruto_per_wai, aes(x = `Week after Inject`, y = avg_bruto)) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Bruto per Week After Inject", y = "Average Bruto") +
+  geom_smooth(method = "lm")
+
+ggplotly(p6)
+```
+
+Berdasarkan analisis rata-rata bruto terhadap `Week after Inject`, dapat dilihat bahwa nilai rata-rata bruto cenderung menurun. Dalam confidence interval abu-abu, week after inject ke-13 memiliki rata-rata bruto tertinggi, sedangkan secara keseluruhan, week after inject ke-15 memiliki rata-rata bruto tertinggi.
+
+## 7. Curah Hujan vs Week Panen per Year
+
+Visualisasi: Line chart faceted curah hujan
+
+```{r}
+curah_hujan <- read_excel("Selected.xlsx", sheet = "Curah Hujan")
+
+p7 <- ggplot(curah_hujan, aes(x = `Week Panen`, y = `Curah Hujan Rata-Rata`)) +
+  geom_line() +
+  labs(title = "Curah Hujan per Week Panen") +
+  facet_wrap(~`Year Panen`, nrow = 1)
+
+ggplotly(p7)
+```
+
+## 8. Rata-rata Bruto per Tahun
+
+Visualisasi: Bar chart rata-rata bruto
+
+```{r}
+df_panen <- df_panen %>%
+  mutate(
+    `Year Panen` = as.factor(lubridate::year(`Tanggal Panen`))
+  )
+
+bruto_per_year <- df_panen %>%
+  group_by(`Year Panen`) %>%
+  summarise(avg_bruto = mean(`Bruto (Kg)`, na.rm = TRUE))
+
+p8 <- ggplot(bruto_per_year, aes(x = `Year Panen`, y = avg_bruto)) +
+  geom_col() +
+  theme_minimal() +
+  labs(title = "Average Bruto per Year", y = "Average Bruto")
+
+ggplotly(p8)
+```
+
+Berdasarkan analisis rata-rata bruto per tahun, terlihat bahwa rata-rata bruto menurun sejak tahun 2023, sehingga diperlukan evaluasi dengan mempelajari praktik sukses di tahun 2023 agar dapat meningkatkan bruto pada tahun berikutnya.
+
+## 9. Distribusi Week After Inject per Tahun
+
+Visualisasi: Stacked bar chart jumlah sampel
+
+```{r}
+count_wai_year <- df_panen %>%
+  group_by(`Year Panen`, `Week after Inject`) %>%
+  summarise(count = n()) %>%
+  arrange(`Year Panen`, `Week after Inject`)
+
+p9 <- ggplot(count_wai_year, aes(x = `Week after Inject`, y = count, fill = `Year Panen`)) +
+  geom_col() +
+  theme_minimal() +
+  labs(title = "Week After Inject Distribution per Year", y = "Count")
+
+ggplotly(p9)
+```
+
+Dari analisis distribusi week after inject per tahun, dapat dilihat bahwa panen paling banyak dilakukan pada week after inject ke-13 secara total. Pada tahun 2023, panen paling sering dilakukan pada week after inject ke-16. Untuk tahun 2024, week after inject ke-13. Untuk tahun 2025, week after inject ke-12.
+
+## 10. Rata-rata Bruto per Phase & Tahun
+
+Visualisasi: Dodged bar chart rata-rata bruto
+
+```{r}
+bruto_year_phase <- df_panen %>%
+  group_by(`Year Panen`, Phase) %>%
+  summarise(avg_bruto = mean(`Bruto (Kg)`, na.rm = TRUE)) %>%
+  arrange(`Year Panen`)
+
+p10 <- ggplot(bruto_year_phase, aes(x = Phase, y = avg_bruto, fill = `Year Panen`)) +
+  geom_col(position = "dodge") +
+  theme_minimal() +
+  labs(title = "Average Bruto per Phase and Year", y = "Average Bruto")
+
+ggplotly(p10)
+```
+
+Berdasarkan analisis rata-rata bruto per tahun terhadap fase, dapat dilihat bahwa nilai rata-rata bruto tertinggi untuk setiap tahun dimiliki oleh fase 1 (2023), fase 3 (2024), dan fase 4.1 (2025). Nilai rata-rata bruto terendah untuk setiap tahun dimiliki oleh fase 2 (2023), fase 5 (2024), dan fase 8 (2025.
+
+## 11. Rata-rata Bruto per Week Panen
+
+Visualisasi: Line chart rata-rata bruto
+
+```{r}
+bruto_wp_year <- df_panen %>%
+  group_by(`Year Panen`, `Week Panen`) %>%
+  summarise(avg_bruto = mean(`Bruto (Kg)`, na.rm = TRUE)) %>%
+  arrange(`Year Panen`, `Week Panen`)
+
+p11 <- ggplot(bruto_wp_year, aes(x = `Week Panen`, y = avg_bruto)) +
+  geom_line() +
+  facet_wrap(~`Year Panen`) +
+  labs(title = "Average Bruto per Week Panen per Year", x = "Week Panen", y = "Bruto (kg)")
+
+ggplotly(p11)
+```
+
+## 12. Rata-rata Bruto per Generasi dan Fase
+
+Visualisasi: Dodged bar chart rata-rata bruto
+
+```{r}
+bruto_generasi_phase <- df_panen %>%
+  group_by(Phase, Generasi) %>%
+  summarise(avg_bruto = mean(`Bruto (Kg)`, na.rm = TRUE)) %>%
+  arrange(Phase, Generasi)
+
+p12 <- ggplot(bruto_generasi_phase, aes(x = Phase, y = avg_bruto, fill = Generasi)) +
+  geom_col(position = "dodge") +
+  theme_minimal() +
+  labs(title = "Average Bruto per Phase & Generation", y = "Average Bruto")
+
+ggplotly(p12)
+```
+
+Berdasarkan analisis rata-rata bruto per generasi terhadap fase, dapat dilihat bahwa untuk setiap generasi, fase yang memiliki nilai rata-rata bruto tertinggi adalah fase 3 (Induk & R3), fase 6.2 (R1), fase 4.1 (R2), dan fase 1 (R4). Nilai rata-rata bruto terendah dimiliki oleh fase 5 (Induk), fase 6 (R1), fase 1 (R2 & R3), dan fase 3 (R4).
+
+## 13. Rata-rata Bruto per Generasi & Clone
+
+Visualisasi: Dodged bar chart rata-rata bruto
+
+```{r}
+bruto_clone_generasi <- df_panen %>%
+  group_by(Clone, Generasi) %>%
+  summarise(avg_bruto = mean(`Bruto (Kg)`, na.rm = TRUE)) %>%
+  arrange(Clone, Generasi)
+
+p13 <- ggplot(bruto_clone_generasi, aes(x = Generasi, y = avg_bruto, fill = Clone)) +
+  theme_minimal() +
+  geom_col(position = "dodge") +
+  labs(title = "Average Bruto per Clone & Generasi", y = "Average Bruto")
+
+ggplotly(p13)
+```
+
+Berdasarkan analisis rata-rata bruto per clone terhadap generasi, dapat dilihat bahwa nilai rata-rata bruto tertinggi untuk setiap jenis clone dimiliki generasi Induk (Haraka & HK 1) dan generasi R4 (HK 2). Nilai rata-rata bruto terendah dimiliki generasi R2 (HK 1 & HK 2).
+
+## 14. Sample Density Week after Inject
+
+Visualisasi: Scatter plot jumlah sampel
+
+```{r}
+sd_wai <- df_panen %>%
+  group_by(`Week after Inject`) %>%
+  summarise(count = n()) %>%
+  arrange(`Week after Inject`)
+
+p14 <- ggplot(sd_wai, aes(x = `Week after Inject`, y = count)) +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Sample Density Week After Inject", y = "Count") +
+  geom_smooth(method = "lm")
+
+ggplotly(p14)
+```
+
+Berdasarkan analisis sample density week after inject, dapat dilihat bahwa jumlah sampel menurun. Dalam confidence interval, jumlah sampel terbanyak dimiliki week after inject ke-16. Sedangkan secara keseluruhan, di week after inject ke-13.
+
+## 15. Rata-rata Bruto per Generasi
+
+```{r}
+bruto_per_generasi = df_panen %>%
+  group_by(Generasi) %>%
+  summarise(avg_bruto = mean(`Bruto (Kg)`),
+            n = n())
+
+scale_factor_n <- max(bruto_per_generasi$avg_bruto)/max(bruto_per_generasi$n)
+
+p15 <- ggplot(bruto_per_generasi, aes(x = Generasi)) +
+  geom_col(aes(y = avg_bruto)) +
+  geom_text(aes(
+    y = n * scale_factor_n,
+    label = paste0(n, " samples")
+  ),
+  vjust = -0.5, color = "darkorange", size = 3.5) +
+  scale_y_continuous(
+    name = "Bruto (kg)",
+    sec.axis = sec_axis(~./scale_factor_n, name = "Sample Density")
+  ) +
+  labs(title = "Sample Density & Bruto per Generasi (Bruto-focused)",
+       x = "Generasi")
+
+ggplotly(p15)
+```
+
+## 16. Jumlah Pohon per Phase & Generasi
+
+```{r}
+count_generasi_phase <- df_panen %>%
+  group_by(Phase, Generasi) %>%
+  summarise(count = n()) %>%
+  arrange(Phase, Generasi)
+
+p16 <- ggplot(count_generasi_phase, aes(x = Phase, y = count, fill = Generasi)) +
+  geom_col(position = "dodge") +
+  theme_minimal() +
+  labs(title = "Population per Phase & Generation", y = "Jumlah Pohon")
+
+ggplotly(p16)
+```
+
+Berdasarkan analisis jumlah pohon per generasi terhadap fase, dapat dilihat bahwa untuk setiap generasi, fase yang memiliki jumlah pohon terbesar adalah fase 4.1 (Induk) dan fase 1 (R1, R2, & R3). Jumlah pohon terkecil dimiliki oleh fase 6 (Induk), fase 4 (R1 & R2), fase 6 (R1), dan fase 3 (R4).
+
+## 17. Jarak antar Generasi per Phase
+
+### a. Nursery-Tanam
+
+```{r}
+data <- read_excel("Final Durasi Decline.xlsx")
+
+data$Phase <- as.factor(data$Phase)
+
+p17a <- ggplot(data, aes(x = Phase, y = `Nursery-Tanam`)) +
+  geom_col() +
+  labs(title = "Durasi Antar Nursery dan Tanam", y = "Durasi (minggu)", x = "Phase") +
+  theme_minimal()
+
+ggplotly(p17a)
+```
+
+### b. Tanam-Induk
+
+```{r}
+p17b <- ggplot(data, aes(x = Phase, y = `Tanam-Induk`)) +
+  geom_col() +
+  labs(title = "Durasi Antar Tanam dan Induk", y = "Durasi (minggu)", x = "Phase") +
+  theme_minimal()
+
+ggplotly(p17b)
+```
+
+### c. Induk-R1
+
+```{r}
+p17c <- ggplot(data, aes(x = Phase, y = `Induk-R1`)) +
+  geom_col() +
+  labs(title = "Durasi Antar Induk dan R1", y = "Durasi (minggu)", x = "Phase") +
+  theme_minimal()
+
+ggplotly(p17c)
+```
+
+### d. R1-R2
+
+```{r}
+p17d <- ggplot(data, aes(x = Phase, y = `R1-R2`)) +
+  geom_col() +
+  labs(title = "Durasi Antar R1 dan R2", y = "Durasi (minggu)", x = "Phase") +
+  theme_minimal()
+
+ggplotly(p17d)
+```
+
+### e. R2-R3
+
+```{r}
+p17e <- ggplot(data, aes(x = Phase, y = `R2-R3`)) +
+  geom_col() +
+  labs(title = "Durasi Antar R2 dan R3", y = "Durasi (minggu)", x = "Phase") +
+  theme_minimal()
+
+ggplotly(p17e)
+```
+
+### f. R3-R4
+
+```{r}
+p17f <- ggplot(data, aes(x = Phase, y = `R3-R4`)) +
+  geom_col() +
+  labs(title = "Durasi Antar R3 dan R4", y = "Durasi (minggu)", x = "Phase") +
+  theme_minimal()
+
+ggplotly(p17f)
+```
