@@ -25,13 +25,13 @@ The following variables were used in the analysis.
 |---|---|---|
 | Week Panen | Week in which harvesting occurred | Week number |
 | Week Inject | Week in which injection occurred | Week number |
-| Kaliper | Caliper measurement of the banana crop | Unit to be confirmed |
+| Kaliper | Caliper measurement of the banana crop | Millimeters |
 | Bruto (Kg) | Gross production weight | Kilograms |
 | Phase | Plantation production phase | Categorical |
 | Generasi | Plantation generation | Categorical |
 | Week after Inject | Number of weeks elapsed after injection | Weeks |
-| Bruto/Sisir | Gross production weight per banana hand | Unit to be confirmed |
-| Curah Hujan | Rainfall measurement associated with the plantation observations | Unit to be confirmed |
+| Bruto/Sisir | Gross production weight per banana hand | Kilograms |
+| Curah Hujan | Rainfall measurement associated with the plantation observations | Millimeters |
 
 **Note:** This table documents the variables identified in the project. The remaining variables and exact measurement definitions should be verified against the original dataset.
 
