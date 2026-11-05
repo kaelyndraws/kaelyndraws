@@ -1,61 +1,98 @@
-# Credit Score Deployment
+# Hi, I'm Kaelyn! 👋
 
-Struktur ini memisahkan training pipeline, inferencing, backend API, dan frontend.
+### Data Science Undergraduate | Aspiring Data Analyst & Data Scientist
 
-## File
+I'm a Data Science undergraduate at **BINUS University**, interested in data analytics, machine learning, statistics, and applying technology to solve real-world problems.
 
-- `credit_score_mlflow_pipeline.py` — pipeline training OOP + MLflow.
-- `inference.py` — class `CreditScorePredictor` untuk load model bundle dan prediksi.
-- `main.py` — FastAPI backend.
-- `app.py` — Streamlit frontend.
-- `requirements.txt` — dependency deployment.
+I enjoy working with data throughout the analytical process, from cleaning and exploring datasets to identifying patterns, developing models, and interpreting results. I'm particularly interested in understanding how data can support better decisions.
 
-## Training
+I'm currently seeking **internship opportunities** where I can apply my technical knowledge, contribute to meaningful projects, and continue learning from experienced professionals.
 
-Jalankan dari folder project:
+## 🎓 Education
 
-```bash
-python credit_score_mlflow_pipeline.py --data_path data_B.csv --output_dir outputs
-```
+**BINUS University — B.Sc. in Data Science (Undergraduate)**
 
-Output penting:
+- GPA: **3.66/4.00**
+- Relevant coursework: Machine Learning, Bayesian Data Analysis, Database Technology, Data Mining and Visualization, Deep Learning, and Statistical Analysis.
 
-```text
-outputs/best_credit_score_model.pkl
-```
+## 🛠️ Technical Skills
 
-## Backend FastAPI
+**Programming & Querying**
+- Python, R, SQL
 
-```bash
-uvicorn main:app --reload
-```
+**Data Analytics & Statistics**
+- Data Cleaning and Preprocessing
+- Exploratory Data Analysis (EDA)
+- Statistical Analysis and Bayesian Statistics
+- Data Visualization
+- Data Mining
 
-Buka dokumentasi endpoint:
+**Machine Learning**
+- Classification and Regression
+- Feature Engineering
+- Model Evaluation
+- Hyperparameter Tuning
+- Ensemble Learning
 
-```text
-http://127.0.0.1:8000/docs
-```
+**Tools & Technologies**
+- Pandas, NumPy, scikit-learn
+- Jupyter Notebook, Google Colab
+- Git, MLflow
+- FastAPI, Streamlit, AWS SageMaker
 
-## Frontend Streamlit
+## 📂 Featured Projects
 
-Di terminal lain:
+### Credit Score Classification
+*Python | scikit-learn | Machine Learning*
 
-```bash
-streamlit run app.py
-```
+Developed a multiclass credit score classification workflow using approximately **25,000 records**.
 
-Default endpoint frontend:
+- Performed data preprocessing, feature engineering, and model evaluation.
+- Compared and tuned classification algorithms.
+- Achieved **75% test accuracy** using Random Forest.
+- Explored experiment tracking and model deployment with MLflow, FastAPI, Streamlit, and AWS SageMaker.
 
-```text
-http://127.0.0.1:8000/predict
-```
+### Plantation Data Analysis
+*R | Data Analysis | Statistical Analysis*
 
-## Screenshot testing
+Analyzed an agricultural dataset containing approximately **16,787 records** to explore production patterns and factors associated with yield.
 
-Gunakan tiga test case di sidebar Streamlit:
+- Examined harvest timing, production phases, and crop characteristics.
+- Applied exploratory data analysis and statistical visualization.
+- Investigated patterns that could support agricultural production decisions.
+- Explored regression and ensemble learning approaches.
 
-1. Poor-like customer
-2. Standard-like customer
-3. Good-like customer
+### Academic Data Analytics Projects
+*Python | R | Statistics | Data Visualization*
 
-Ambil screenshot hasil prediksi untuk masing-masing test case dan screenshot halaman FastAPI `/docs`.
+Completed academic projects involving data mining, statistical analysis, Bayesian methods, survey and sampling techniques, and database systems.
+
+These projects strengthened my experience in interpreting datasets, communicating analytical findings, and applying statistical methods.
+
+## 🌏 Languages
+
+- Indonesian — Native/Bilingual
+- English — Full Professional Proficiency
+- Mandarin Chinese — Intermediate
+- Japanese — Intermediate (JLPT N3-level study)
+
+## 🤝 Let's Connect!
+
+I'm open to internship opportunities in:
+
+- Data Analysis
+- Data Science
+- Machine Learning
+- Business Intelligence
+
+Feel free to explore my projects or connect with me!
+
+**LinkedIn:** [Kaelyn Renata Halim](https://www.linkedin.com/in/kaelyn-renata-halim-7a8950325/)
+
+**Email:** kaelyn.halim@binus.ac.id
+
+**Portfolio:** [View my portfolio](https://drive.google.com/drive/folders/1EwDqZYpmc-UugzbB9CntJMR9HDjrC7g3?usp=sharing)
+
+---
+
+*Always learning, exploring, and looking for opportunities to turn data into meaningful insights.*
