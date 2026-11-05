@@ -69,10 +69,12 @@ R / Bayesian Logistic Regression / brms / Hamiltonian Monte Carlo (HMC) / Stan /
   - Depth and seismic significance showed relatively small coefficient estimates.
   These relationships describe the fitted statistical model and should not be interpreted as causal effects.
 - Posterior Predictive Checks
+  
   Posterior predictive checks were performed to compare observed outcomes against replicated observations generated from the fitted model.
 
   The reported plots showed reasonable agreement between observed and replicated distributions.
 - Model Fit
+  
   The study reported:
   - WAIC: 875.0
   - LOOIC: 875.1
