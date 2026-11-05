@@ -1,0 +1,1042 @@
+---
+title: "FinalExam-2802420731-Kaelyn Renata Halim"
+author: "Kaelyn Renata Halim"
+date: "2025-06-19"
+output:   
+  html_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+    theme: readable
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,        # Hides R code
+  message = FALSE,     # Hides package messages
+  warning = FALSE,     # Hides warnings
+  fig.width = 5,       # Plot width in inches
+  fig.height = 7,      # Plot height in inches
+  dev = "png"          # Use PNG format for plots
+)
+```
+
+[Video Explanation](https://drive.google.com/file/d/1vg9XoWtm_BrK9_9o1y9aNY78rtI42Qaf/view?usp=sharing)
+
+### Case Studies {.tabset}
+
+#### Data Quality Assessment and Preprocessing
+
+**A. Identify data quality issues**
+
+Import the dataset.
+
+```{r}
+data <- read.csv("data_B 19.15.28.csv")
+head(data)
+```
+
+Data Summary
+
+```{r}
+summary(data)
+```
+
+Assign proper data types to each variable. Change the **job**, **marital**, **education**, **default**, **housing**, **loan**, **contact**, **month**, **day_of_week**, **poutcome**, and **y** variables from character to factor.
+
+```{r}
+data$job <- as.factor(data$job)
+data$marital <- as.factor(data$marital)
+data$education <- as.factor(data$education)
+data$default <- as.factor(data$default)
+data$housing <- as.factor(data$housing)
+data$loan <- as.factor(data$loan)
+data$contact <- as.factor(data$contact)
+data$month <- as.factor(data$month)
+data$day_of_week <- as.factor(data$day_of_week)
+data$poutcome <- as.factor(data$poutcome)
+data$y <- as.factor(data$y)
+
+summary(data)
+```
+
+*Missing values*
+
+Check levels for **job**, **education**, and **month** variables.
+
+```{r}
+levels(data$job)
+```
+
+```{r}
+levels(data$education)
+```
+
+```{r}
+levels(data$month)
+```
+
+Check for outliers in the **duration** variable with a box plot to manage the NA data.
+
+```{r}
+boxplot(data$duration)
+```
+
+*Duplicate records*
+
+Check for duplicates.
+
+```{r}
+duplicates <- which(duplicated(data))
+duplicates
+```
+
+There are no duplicate rows in this dataset.
+
+*Inconsistent or unknown categories*
+
+Check levels of categorical variables that have many levels (**job**, **education**, **month**).
+
+```{r}
+levels(data$job)
+```
+
+```{r}
+table(data$job)
+```
+```{r}
+levels(data$education)
+```
+
+```{r}
+table(data$education)
+```
+```{r}
+levels(data$month)
+```
+
+*Noisy or irrelevant values*
+
+Check for outliers in the **age**, **duration**, **campaign**, **pdays**, and **previous** variables with box plots.
+
+```{r}
+boxplot(data$age)
+```
+
+```{r}
+boxplot(data$duration)
+```
+
+```{r}
+boxplot(data$campaign)
+```
+
+```{r}
+boxplot(data$pdays)
+```
+
+```{r}
+boxplot(data$previous)
+```
+
+
+**B. Handle the issues you identified**
+
+Remove rows that have missing values the **age**, **job**, **duration**, **campaign**, **pdays**, and **previous** variables. For categorical variables like **job**, rows with missing values are removed because imputing them with any job level there is would alter the authenticity of the responses.
+
+```{r}
+age_missing <- which(data$age == "")
+job_missing <- which(data$job == "")
+duration_missing <- which(data$duration == "")
+campaign_missing <- which(data$campaign == "")
+pdays_missing <- which(data$pdays == "")
+previous_missing <- which(data$previous == "")
+
+nrow(data)
+```
+
+```{r}
+data <- data[-c(age_missing, job_missing, duration_missing, campaign_missing, pdays_missing, previous_missing),]
+
+nrow(data)
+```
+
+```{r}
+summary(data)
+```
+
+Because there are outliers in the **duration** variable, the NA data will be replaced by the median because the median is not affected by the values in the data and the skewness of the data.
+
+```{r}
+median <- median(data$duration, na.rm = TRUE)
+median
+```
+
+```{r}
+library(data.table)
+
+data$duration <- nafill(data$duration, fill = median)
+summary(data)
+```
+
+I'll drop unknown rows in the **job** and **marital** variables because they each make up less than 1% of the total responses. As for the unknowns in the **education** variable, I'll convert them to NA first, and then impute them with "university.degree" as it's the most common level. For unknowns in the **default**, **housing**, and **loan** variables, I'll keep them as valid categories because they might be meaningful, and I don't want to lose rows unnecessarily.
+
+```{r}
+nrow(data)
+```
+
+```{r}
+data <- subset(data, data$job != "unknown")
+data <- subset(data, data$marital != "unknown")
+
+data$education[data$education == "unknown"] <- NA
+mode_edu <- names(sort(table(data$education), decreasing = TRUE))[1]
+data$education[is.na(data$education)] <- mode_edu
+
+summary(data)
+```
+
+For outliers in the **age**, **duration**, and **previous** variables, I'll keep them because they're valid. For outliers in campaign, I'll take note of some that are over 10 as extreme in case of unusually high contact counts. For the 999s in the pdays variable, I'll convert them to a separate category called "not_contacted".
+
+```{r}
+data$campaign_flag <- data$campaign > 10
+table(data$campaign_flag)
+prop.table(table(data$campaign_flag)) * 100
+```
+
+```{r}
+data$pdays_status <- ifelse(data$pdays == 999, "not_contacted", "contacted")
+table(data$pdays_status)
+prop.table(table(data$pdays_status)) * 100
+```
+*Create a cleaned version of the dataset called clean_data*
+
+```{r}
+clean_data <- data
+
+summary(clean_data)
+```
+
+Make the **pdays_status** variable into factor data type.
+
+```{r}
+clean_data$pdays_status <- as.factor(clean_data$pdays_status)
+
+summary(clean_data)
+```
+
+Drop **X** variable because it's just the row index.
+
+```{r}
+clean_data$X <- NULL
+```
+
+Make a new variable "**pdays_num**" to look at the non-999 values while keeping the numerical data type.
+
+```{r}
+clean_data$pdays_num <- ifelse(clean_data$pdays == 999, NA, clean_data$pdays)
+```
+
+Review imputation of **education** variable if it's by mode or model-based, to check if there are still unknown values.
+
+```{r}
+table(clean_data$education, useNA = "ifany")
+```
+There are no more unknown values in the **education** variable.
+
+Reorder factor levels in the **education** variable.
+
+```{r}
+clean_data$education <- factor(clean_data$education,
+                               levels = c("illiterate", "basic.4y", "basic.6y", "basic.9y", 
+                                          "high.school", "professional.course", "university.degree"))
+
+table(clean_data$education, useNA = "ifany")
+```
+
+Final summary of the cleaned dataset.
+
+```{r}
+summary(clean_data)
+```
+
+**C. Summary statistics and initial exploration**
+
+*Calculate central tendency and variability for numerical columns*
+
+The numerical variables I'll explore in the cleaned dataset are the **age**, **duration**, **campaign**, **previous**, and **pdays_num** variables.
+
+Central tendency & variability of the **age** variable
+
+```{r}
+mean(clean_data$age)
+median(clean_data$age)
+
+get_mode <- function(x, na.rm = FALSE){
+  if(na.rm){
+    x <- x[!is.na(x)]
+  }
+  uniq_vals <- unique(x)
+  uniq_vals[which.max(tabulate(match(x, uniq_vals)))]
+}
+get_mode(clean_data$age)
+```
+
+The *average* age in the dataset is around *40.198 years old*, while the *median* age is *38 years old*. The *mode* is *31 years old*. This could suggest that the **age** variable is positively skewed or has a right-skewed distribution because the mean is greater than the median.
+
+```{r}
+max(clean_data$age) - min(clean_data$age)
+quantile(clean_data$age, probs = 0.25)
+quantile(clean_data$age, probs = 0.75)
+IQR(clean_data$age)
+sd(clean_data$age)
+var(clean_data$age)
+# Coefficient of variation
+var(clean_data$age) / mean(clean_data$age)
+# Skewness
+library(e1071)
+skewness(clean_data$age)
+kurtosis(clean_data$age)
+```
+
+The *range* of the **age** variable is 73 years. The *1st quartile* is *32 years old*, and the *3rd quartile* is *47 years old*, making an *interquartile range* of *15 years*. The *standard deviation* is around *10.412 years*, and the *variance* is around *108.408*. The *coefficient of variation* is around *269.688%*. With a *skewness value* of around *0.768*, it proves that the **age** variable is *positively skewed*. A *kurtosis value* of around *0.668* means that the distribution has a *sharper-rising peak* than the peak of normal distribution.
+
+Central tendency & variability of the **duration** variable
+
+```{r}
+mean(clean_data$duration)
+median(clean_data$duration)
+get_mode(clean_data$duration)
+```
+
+The *average* duration of the last contact is around *254.513 seconds* (or around 4,242 minutes), while the *median* duration is *175 seconds* (or around 2,917 minutes). The *mode* is *76 seconds* (or around 1,267 minutes). This could suggest that the **duration** variable is positively skewed or has right-skewed distribution because the mean is greater than the median.
+
+```{r}
+max(clean_data$duration) - min(clean_data$duration)
+quantile(clean_data$duration, probs = 0.25)
+quantile(clean_data$duration, probs = 0.75)
+IQR(clean_data$duration)
+sd(clean_data$duration)
+var(clean_data$duration)
+# Coefficient of variation
+var(clean_data$duration) / mean(clean_data$duration)
+skewness(clean_data$duration)
+kurtosis(clean_data$duration)
+```
+
+The *range* of the **duration** variable is *3784 seconds* (or around 63,067 minutes, or around 1,051 hours). The *1st quartile* is *102 seconds* (or 1.7 minutes), and the *3rd quartile* is *314 seconds* (or around 5,233 minutes), making an *interquartile range* of *212 seconds* (or 3,533 minutes). The *standard deviation* is around *256.514 seconds* (or around 4,275 minutes), while the *variation* is around *65799.24*. The *coefficient of variation* is around *25853.01%*. With a *skewness value* of around *3.268*, it proves that the **duration** variable is *positively skewed*. A *kurtosis value* of around *19.624* means that the distribution has a *sharper-rising peak* than the peak of normal distribution.
+
+Central tendency and variability of the **campaign** variable
+
+```{r}
+mean(clean_data$campaign)
+median(clean_data$campaign)
+get_mode(clean_data$campaign)
+```
+
+The *average* number of contacts being made during the current campaign is around *2.562 people*, while the *median* number is *2 people*. The mode is *1 person*. This could suggest that the **campaign** variable is positively skewed or has right-skewed distribution.
+
+```{r}
+max(clean_data$campaign) - min(clean_data$campaign)
+quantile(clean_data$campaign, probs = 0.25)
+quantile(clean_data$campaign, probs = 0.75)
+IQR(clean_data$campaign)
+sd(clean_data$campaign)
+var(clean_data$campaign)
+# Coefficient of variation
+var(clean_data$campaign) / mean(clean_data$campaign)
+skewness(clean_data$campaign)
+kurtosis(clean_data$campaign)
+```
+
+The *range* of the **campaign** variable is *55 people*. The *1st quartile* is *1 person*, and the *3rd quartile* is *3 people*, making an *interquartile range* of *2 people*. The *standard deviation* is around *2.771* people, while the *variance* is around *7.68*. The *coefficient of variation* is around *299.818%*. With a *skewness value* of around *5.044*, it proves that the **campaign** variable is *positively skewed*. A *kurtosis value* of around *44.147* means that the distribution has a *sharper-rising peak* than the peak of normal distribution.
+
+Central tendency and variability of the **previous** variable
+
+```{r}
+mean(clean_data$previous)
+median(clean_data$previous)
+get_mode(clean_data$previous)
+```
+
+The *average* number of previous contacts before the current campaign is around *0.184 people*, while both the *median* and the *mode* are *0 people*. This could suggest that the **previous** variable is positively skewed or has right-skewed distribution because the mean is greater than the median.
+
+```{r}
+max(clean_data$previous) - min(clean_data$previous)
+quantile(clean_data$previous, probs = 0.25)
+quantile(clean_data$previous, probs = 0.75)
+IQR(clean_data$previous)
+sd(clean_data$previous)
+var(clean_data$previous)
+# Coefficient of variation
+var(clean_data$previous) / mean(clean_data$previous)
+skewness(clean_data$previous)
+kurtosis(clean_data$previous)
+```
+
+The *range* of the **previous** variable is *7 people*. The *1st* and *3rd quartile*, along with the *interquartile range* are *0 people*. The *standard deviation* is around *0.521 people*, while the *variance* is around *0.272*. The *coefficient of variation* is around *147.412%*. With a *skewness value* of around *3.854*, it proves that the **previous** variable is *positively skewed*. A *kurtosis value* of around *20.498* means that the distribution has a *sharper-rising peak* than the peak of normal distribution.
+
+Central tendency and variability of the **pdays_num** variable (excluding responses that aren't previously contacted)
+
+```{r}
+mean(clean_data$pdays_num, na.rm = TRUE)
+median(clean_data$pdays_num, na.rm = TRUE)
+get_mode(clean_data$pdays_num, na.rm = TRUE)
+```
+
+The *average* number of days since the last contact in a previous campaign is around *6.312 days*, while the *median* is *6 days*. The *mode* is *3 days*. This could suggest that the **pdays_num** variable is positively skewed because the mean is greater than the median.
+
+```{r}
+max(clean_data$pdays_num, na.rm = TRUE) - min(clean_data$pdays_num, na.rm = TRUE)
+quantile(clean_data$pdays_num, probs = 0.25, na.rm = TRUE)
+quantile(clean_data$pdays_num, probs = 0.75, na.rm = TRUE)
+IQR(clean_data$pdays_num, na.rm = TRUE)
+sd(clean_data$pdays_num, na.rm = TRUE)
+var(clean_data$pdays_num, na.rm = TRUE)
+# Coefficient of variation
+var(clean_data$pdays_num, na.rm = TRUE) / mean(clean_data$pdays_num, na.rm = TRUE)
+skewness(clean_data$pdays_num, na.rm = TRUE)
+kurtosis(clean_data$pdays_num, na.rm = TRUE)
+```
+
+The *range* of the **pdays_num** variable is *22 days*. The *1st quartile* is *3 days*, and the *3rd quartile* is *8.5 days*, making an *interquartile range* of *5.5 days*. The *standard deviation* is around *4.066 days*, while the *variation* is around *16.528*. The *coefficient of variation* is around *261.856%*. With a *skewness value* of around *1.258*, this proves that the **pdays_num** variable is *positively skewed*. A *kurtosis value* of around *1.092* means that the distribution has a *sharper-rising peak* than the peak of normal distribution.
+
+*Create a summary table to explore one variable across categories*
+
+```{r}
+library(dplyr)
+
+clean_data %>%
+  group_by(job) %>%
+  summarise(
+    count = n(),
+    mean_age = mean(age, na.rm = TRUE),
+    median_age = median(age, na.rm = TRUE),
+    sd_age = sd(age, na.rm = TRUE),
+    min_age = min(age, na.rm = TRUE),
+    max_age = max(age, na.rm = TRUE)
+  ) %>%
+  arrange(desc(mean_age))
+```
+
+
+#### Relationship Analysis
+
+**A. Explore variable relationships**
+
+Correlation of numerical data (**age**, **duration**, **campaign**, **previous**, **pdays_num**, **pdays**)
+
+Note: **pdays_num** variable will exclude not previously contacted responses
+
+```{r}
+set.seed(123)
+sample_age <- sample(clean_data$age, 5000)
+shapiro.test(sample_age)
+```
+
+H~0~: Data has normal distribution
+
+H~1~: Data has skewed distribution
+
+alpha = 5% = 0.05
+
+Because this dataset has over 8000 rows, I could only take a sample of 5000 rows, which is the maximum limit for the Shapiro-Wilk normality test. Because the p-value is less than 2.2^-16^, which is less than 0.05, the H~0~ is rejected. Therefore, the **age** variable has skewed distribution.
+
+```{r}
+set.seed(123)
+sample_duration <- sample(clean_data$duration, 5000)
+shapiro.test(sample_duration)
+```
+
+Because the p-value is less than 2.2 * 10^-16^, which is less than 0.05, the H~0~ is rejected. Therefore, the **duration** variable has skewed distribution.
+
+```{r}
+set.seed(123)
+sample_campaign <- sample(clean_data$campaign, 5000)
+shapiro.test(sample_campaign)
+```
+
+Because the p-value is less than 2.2 * 10^-16^, which is less than 0.05, the H~0~ is rejected. Therefore, the **campaign** variable has skewed distribution.
+
+```{r}
+set.seed(123)
+sample_previous <- sample(clean_data$previous, 5000)
+shapiro.test(sample_previous)
+```
+
+Because the p-value is less than 2.2 * 10^-16^, which is less than 0.05, the H~0~ is rejected. Therefore, the **previous** variable has skewed distribution.
+
+```{r}
+set.seed(123)
+sample_pdays_num <- sample(clean_data$pdays_num[!is.na(clean_data$pdays_num)])
+shapiro.test(sample_pdays_num)
+```
+
+Because the p-value is less than 2.2 * 10^-16^, which is less than 0.05, the H~0~ is rejected. Therefore, the **pdays_num** variable (excluding the responses that weren't previously contacted) has skewed distribution.
+
+```{r}
+set.seed(123)
+sample_pdays <- sample(clean_data$pdays, 5000)
+shapiro.test(sample_pdays)
+```
+
+Because the p-value is less than 2.2 * 10^-16^, which is less than 0.05, the H~0~ is rejected. Therefore, the **pdays** variable (including the responses that weren't previously contacted) has skewed distribution.
+
+Because all numerical variables have skewed distribution, the Tau Kendall's Test will be used to explore numerical variable relationships.
+
+**Age** and **Duration**
+
+```{r}
+cor.test(clean_data$age, clean_data$duration, method = "kendall")
+```
+
+H~0~: There isn't any relationship between the two variables.
+
+H~1~: There is a relationship between the two variables.
+
+alpha = 5% = 0.05
+
+Because the p-value, 0.3503, is greater than 0.05, the H~0~ fails to be rejected. Therefore, there isn't any relationship between the **age** and **duration** variables.
+
+**Age** and **Campaign**
+
+```{r}
+cor.test(clean_data$age, clean_data$campaign, method = "kendall")
+```
+
+Because the p-value, 0.107, is greater than 0.05, the H~0~ fails to be rejected. Therefore, there isn't any relationship between the **age** and **campaign** variables.
+
+**Age** and **Previous**
+
+```{r}
+cor.test(clean_data$age, clean_data$previous, method = "kendall")
+```
+
+Because the p-value, 0.02953, is less than 0.05, the H~0~ is rejected. Therefore, **there is a relationship** between the **age** and **previous** variables.
+
+**Age** and **pdays_num**
+
+```{r}
+cor.test(clean_data$age, clean_data$pdays_num, method = "kendall", use = "complete.obs")
+```
+
+Because the p-value, 0.5009, is greater than 0.05, the H~0~ fails to be rejected. Therefore, there isn't any relationship between the **age** and **pdays_num** variables.
+
+**Age** and **pdays**
+
+```{r}
+cor.test(clean_data$age, clean_data$pdays, method = "kendall")
+```
+
+Because the p-value, 0.278, is greater than 0.05, the H~0~ fails to be rejected. Therefore, there isn't any relationship between the **age** and **pdays** variables.
+
+It's safe to say that the number of days since the last contact in a previous campaign completely doesn't have any relationship with age.
+
+**Duration** and **Campaign**
+
+```{r}
+cor.test(clean_data$duration, clean_data$campaign, method = "kendall")
+```
+
+Because the p-value, 1.395 * 10^-11^, is less than 0.05, the H~0~ is rejected. Therefore, **there is a relationship** between the **duration** and **campaign** variables.
+
+**Duration** and **Previous**
+
+```{r}
+cor.test(clean_data$duration, clean_data$previous, method = "kendall")
+```
+
+Because the p-value, 2.923 * 10^-5^, is less than 0.05, the H~0~ is rejected. Therefore, **there is a relationship** between the **duration** and **previous** variables.
+
+**Duration** and **pdays_num**
+
+```{r}
+cor.test(clean_data$duration, clean_data$pdays_num, method = "kendall", use = "complete.obs")
+```
+
+Because the p-value, 0.1391, is greater than 0.05, the H~0~ fails to be rejected. Therefore, there isn't any relationship between the **duration** and **pdays_num** variables.
+
+**Duration** and **pdays**
+
+```{r}
+cor.test(clean_data$duration, clean_data$pdays, method = "kendall")
+```
+
+Because the p-value, 3.954 * 10^-15^, is less than 0.05, the H~0~ is rejected. Therefore, **there is a relationship** between the **duration** and **pdays** variables.
+
+A correlation is observed between the **pdays** and **duration** variables only when responses not previously contacted (pdays = 999) were included. However, this correlation appears to be driven by the presence of the 999 placeholder, which represent a qualitatively different condition (not previously contacted), rather than a true numeric delay. When restricting the analysis to previously contacted clients (pdays != 999), no meaningful correlation was found between time since last contact and call duration. Therefore, it's concluded that **there is no meaningful correlation** between the **pdays** and **duration** variables among clients who were previously contacted.
+
+**Campaign** and **Previous**
+
+```{r}
+cor.test(clean_data$campaign, clean_data$previous, method = "kendall")
+```
+
+Because the p-value, less than 2.2 * 10^-16^, is less than 0.05, the H~0~ is rejected. Therefore, **there is a relationship** between the **campaign** and **previous** variables.
+
+**Campaign** and **pdays_num**
+
+```{r}
+cor.test(clean_data$campaign, clean_data$pdays_num, method = "kendall", use = "complete.obs")
+```
+
+Because the p-value, 0.6619, is greater than 0.05, the H~0~ fails to be rejected. Therefore, there isn't any relationship between the **duration** and **pdays_num** variables.
+
+**Campaign** and **Pdays**
+
+```{r}
+cor.test(clean_data$campaign, clean_data$pdays, method = "kendall")
+```
+
+Because the p-value, 1.137 * 10^-9^, is less than 0.05, the H~0~ is rejected. Therefore, **there is a relationship** between the **campaign** and **pdays** variables.
+
+A correlation is observed between the **pdays** and **campaign** variables only when responses not previously contacted (pdays = 999) were included. However, this correlation appears to be driven by the presence of the 999 placeholder, which represent a qualitatively different condition (not previously contacted), rather than a true numeric delay. When restricting the analysis to previously contacted clients (pdays != 999), no meaningful correlation was found between time since last contact and number of contacts made during the current campaign. Therefore, it's concluded that **there is no meaningful correlation** between the **pdays** and **campaign** variables among clients who were previously contacted.
+
+**Previous** and **pdays_num**
+
+```{r}
+cor.test(clean_data$previous, clean_data$pdays_num, method = "kendall", use = "complete.obs")
+```
+
+Because the p-value, 0.8997, is greater than 0.05, the H~0~ fails to be rejected. Therefore, there isn't any relationship between the **previous** and **pdays_num** variables.
+
+**Previous** and **Pdays**
+
+```{r}
+cor.test(clean_data$previous, clean_data$pdays, method = "kendall")
+```
+
+Because the p-value, less than 2.2 * 10^-16^, is less than 0.05, the H~0~ is rejected. Therefore, **there is a relationship** between the **previous** and **pdays** variables.
+
+A correlation is observed between the **pdays** and **previous** variables only when responses not previously contacted (pdays = 999) were included. However, this correlation appears to be driven by the presence of the 999 placeholder, which represent a qualitatively different condition (not previously contacted), rather than a true numeric delay. When restricting the analysis to previously contacted clients (pdays != 999), no meaningful correlation was found between time since last contact and number of previous contacts before the current campaign. Therefore, it's concluded that **there is no meaningful correlation** between the **pdays** and **previous** variables among clients who were previously contacted.
+
+List of correlated numerical variables:
+
+- **age** and **previous**
+
+- **duration** and **campaign**
+
+- **duration** and **previous**
+
+- **campaign** and **previous**
+
+Cross-tabulation of categorical data with **y** variable (**job**, **marital**, **education**, **default**, **housing**, **loan**, **contact**, **month**, **day_of_week**, **poutcome**)
+
+Make contingency tables of every categorical variable with **y**
+
+**Job** and **Y**
+
+```{r}
+job_y <- table(clean_data$job, clean_data$y)
+job_y
+```
+
+**Marital** and **Y**
+
+```{r}
+marital_y <- table(clean_data$marital, clean_data$y)
+marital_y
+```
+
+**Education** and **Y**
+
+```{r}
+education_y <- table(clean_data$education, clean_data$y)
+education_y
+```
+
+**Default** and **Y**
+
+```{r}
+default_y <- table(clean_data$default, clean_data$y)
+default_y
+```
+
+**Housing** and **Y**
+
+```{r}
+housing_y <- table(clean_data$housing, clean_data$y)
+housing_y
+```
+
+**Loan** and **Y**
+
+```{r}
+loan_y <- table(clean_data$loan, clean_data$y)
+loan_y
+```
+
+**Contact** and **Y**
+
+```{r}
+contact_y <- table(clean_data$contact, clean_data$y)
+contact_y
+```
+
+**Month** and **Y**
+
+```{r}
+month_y <- table(clean_data$month, clean_data$y)
+month_y
+```
+
+**Day of week** and **Y**
+
+```{r}
+day_of_week_y <- table(clean_data$day_of_week, clean_data$y)
+day_of_week_y
+```
+
+**Poutcome** and **Y**
+
+```{r}
+poutcome_y <- table(clean_data$poutcome, clean_data$y)
+poutcome_y
+```
+
+All tables, except the one between the **education** and **y** variables, will use the Chi-Square Test because each cell has a count of at least 5. Otherwise, use Cramer's V Test.
+
+**Job** and **Y**
+
+```{r}
+chisq.test(clean_data$job, clean_data$y)
+```
+
+H~0~: There isn't a relationship between these two variables
+
+H~1~: There is a relationship between these two variables
+
+alpha = 5% = 0.05
+
+Because the p-value, less than 2.2 * 10^-16^, is less than 0.05, the H~0~ is rejected. Therefore, **there is a relationship** between the **job** and **y** variables.
+
+**Marital** and **Y**
+
+```{r}
+chisq.test(clean_data$marital, clean_data$y)
+```
+
+Because the p-value, 2.128 * 10^-8^, is less than 0.05, the H~0~ is rejected. Therefore, **there is a relationship** between the **marital** and **y** variables.
+
+**Default** and **Y**
+
+```{r}
+chisq.test(clean_data$default, clean_data$y)
+```
+
+Because the p-value, less than 2.2 * 10^-16^, is less than 0.05, the H~0~ is rejected. Therefore, **there is a relationship** between the **default** and **y** variables.
+
+**Housing** and **Y**
+
+```{r}
+chisq.test(clean_data$housing, clean_data$y)
+```
+
+Because the p-value, 0.04484, is less than 0.05, the H~0~ is rejected. Therefore, **there is a relationship** between the **housing** and **y** variables.
+
+**Loan** and **Y**
+
+```{r}
+chisq.test(clean_data$loan, clean_data$y)
+```
+
+Because the p-value, 0.365, is greater than 0.05, the H~0~ fails to be rejected. Therefore, there isn't any relationship between the **loan** and **y** variables.
+
+**Contact** and **Y**
+
+```{r}
+chisq.test(clean_data$contact, clean_data$y)
+```
+
+Because the p-value, less than 2.2 * 10^-16^, is less than 0.05, the H~0~ is rejected. Therefore, **there is a relationship** between the **housing** and **y** variables.
+
+**Month** and **Y**
+
+```{r}
+chisq.test(clean_data$month, clean_data$y)
+```
+
+Because the p-value, less than 2.2 * 10^-16^, is less than 0.05, the H~0~ is rejected. Therefore, **there is a relationship** between the **month** and **y** variables.
+
+**Day of week** and **Y**
+
+```{r}
+chisq.test(clean_data$day_of_week, clean_data$y)
+```
+
+Because the p-value, 0.9865, is greater than 0.05, the H~0~ fails to be rejected. Therefore, there isn't any relationship between the **day_of_week** and **y** variables.
+
+**Poutcome** and **Y**
+
+```{r}
+chisq.test(clean_data$poutcome, clean_data$y)
+```
+
+Because the p-value, less than 2.2 * 10^-16^, is less than 0.05, the H~0~ is rejected. Therefore, **there is a relationship** between the **poutcome** and **y** variables.
+
+**Education** and **Y**
+
+```{r}
+library(vcd)
+assocstats(education_y)
+```
+
+H~0~: There isn't any relationship between these two variables
+
+H~1~: There is a relationship between these two variables
+
+alpha = 5% = 0.05
+
+Because the p-value, 1.8037 * 10^-7^, is less than 0.05, the H~0~ is rejected. Therefore, *there is a relationship* between the **education** and **y** variables.
+
+List of variables that have a relationship with **y**:
+
+- **job**
+
+- **marital**
+
+- **education**
+
+- **default**
+
+- **housing**
+
+- **contact**
+
+- **month**
+
+- **poutcome**
+
+Grouped summary of numerical variables against **y**
+
+```{r}
+clean_data %>%
+  group_by(y) %>%
+  summarise(
+    mean_age = mean(age, na.rm = TRUE),
+    median_age = median(age, na.rm = TRUE),
+    sd_age = sd(age, na.rm = TRUE),
+    
+    mean_duration = mean(duration, na.rm = TRUE),
+    median_duration = median(duration, na.rm = TRUE),
+    sd_duration = sd(duration, na.rm = TRUE),
+    
+    mean_campaign = mean(campaign, na.rm = TRUE),
+    median_campaign = median(campaign, na.rm = TRUE),
+    sd_campaign = sd(campaign, na.rm = TRUE),
+    
+    mean_previous = mean(previous, na.rm = TRUE),
+    median_previous = median(previous, na.rm = TRUE),
+    sd_previous = sd(previous, na.rm = TRUE),
+    
+    mean_pdays_num = mean(pdays_num, na.rm = TRUE),
+    median_pdays_num = median(pdays_num, na.rm = TRUE),
+    sd_pdays_num = sd(pdays_num, na.rm = TRUE)
+  )
+```
+
+Clients who responded "yes" had consistently a much longer call duration, suggesting that duration strongly correlates with a positive outcome. They are also more or less contacted less often during the campaign. They're contacted more often before the current campaign.
+
+Based on exploratory analysis, three variables stood out as potential influencers of the campaign outcome (**y**):
+
+- **Call duration**: Clients who responded "yes" consistently had much longer average call times, indicating higher engagement. It shows a strong positive association with campaign success.
+
+- **Contact method**: Success rates varied depending on the communication channel used, with cellular contact performing better. 
+
+- **Previous campaign outcome**: Clients who had a positive outcome in the prior campaign were more likely to respond positively again. It shows that the outcome of the previous campaign is closely linked to current success.
+
+**B. Feature engineering**
+
+*age_group with levels: "<30", "30-50", ">50"*
+
+```{r}
+clean_data$age_group <- cut(
+  clean_data$age,
+  breaks = c(-Inf, 30, 50, Inf),
+  labels = c("<30", "30-50", ">50"),
+  right = FALSE
+)
+
+summary(clean_data$age_group)
+```
+
+*recency_level based on pdays: "never", "recent", "old"*
+
+```{r}
+clean_data$recency_level <- ifelse(
+  clean_data$pdays == 999, "never",
+  ifelse(clean_data$pdays <= 5, "recent", "old")
+)
+clean_data$recency_level <- factor(clean_data$recency_level, levels = c("never", "recent", "old"))
+
+table(clean_data$recency_level)
+```
+
+*total_contact_score = campaign + previous*
+
+```{r}
+clean_data$total_contact_score <- clean_data$campaign + clean_data$previous
+
+summary(clean_data$total_contact_score)
+```
+
+```{r}
+summary(clean_data)
+```
+
+**C. Interactive visualizations of relationships**
+
+*Categorical vs Categorical*
+
+```{r}
+library(plotly)
+
+job_summary <- clean_data %>%
+  group_by(job, y) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(job) %>%
+  mutate(prop = n / sum(n))
+
+plot_ly(job_summary, x = ~job, y = ~prop, color = ~y, type = "bar") %>%
+  layout(barmode = "stack", title = "Proportion of Responses by Job")
+```
+
+*Numeric vs Categorical*
+
+```{r}
+plot_ly(clean_data, y = ~duration, color = ~y, type = "box") %>%
+  layout(title = "Call Duration by Campaign Outcome")
+```
+
+*Multi-dimensional (Facet or Grouped)*
+
+```{r}
+library(ggplot2)
+
+p <- ggplot(clean_data, aes(x = age_group, fill = y)) +
+  geom_bar(position = "dodge") +
+  facet_wrap(~education) +
+  labs(title = "Age Group vs Outcome by Education")
+
+ggplotly(p)
+```
+
+
+#### Insight Storytelling and Recommendations
+
+**A. Data storytelling through visual design**
+
+```{r}
+duration_summary <- clean_data %>%
+  group_by(y) %>%
+  summarise(mean_duration = mean(duration, na.rm = TRUE))
+
+plot_ly(clean_data, y = ~duration, color = ~y, type = "box") %>%
+  layout(title = "Clients Who Said 'Yes' Had Longer Call Durations",
+         yaxis = list(title = "Call Duration (seconds)"),
+         xaxis = list(title = "Campaign Outcome"),
+         annotations = list(
+           list(
+             x = 1, y = duration_summary$mean_duration[duration_summary$y == "yes"],
+             text = "Higher median", showarrow = TRUE, arrowhead = 7
+           )
+         ))
+```
+
+```{r}
+job_summary <- clean_data %>%
+  group_by(job, y) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(job) %>%
+  mutate(prop = round(n / sum(n), 3))
+
+plot_ly(job_summary, x = ~job, y = ~prop, color = ~y, type = "bar") %>%
+  layout(barmode = "stack",
+         title = "Success Rates Vary by Job Type",
+         xaxis = list(title = "Job", tickangle = -45),
+         yaxis = list(title = "Proportion of Responses"),
+         annotations = list(
+           list(
+             x = "student", y = 0.5, text = "High Success Rate", showarrow = TRUE, arrowhead = 6
+           )
+         ))
+```
+
+**B. Interpret your findings**
+
+The median age of clients is **38 years old**, and those who responded positively to the campaign (**y** = "yes") had significantly longer call durations, with a median of **452.5 seconds** (or around 7.542 minutes), compared to those who declined. The highest positive response rates were observed among certain job types like **students** and **retirees**, despite their smaller representation in the dataset.
+
+An unusual pattern was seen in the **<30 age group**, which had lower response rates despite consistent outreach.
+<details>
+<summary>Click to view summary table</summary>
+
+```{r, echo=FALSE}
+summary_table <- clean_data %>%
+  group_by(age_group) %>%
+  summarise(mean_campaign = mean(campaign), count = n())
+
+library(knitr)
+kable(summary_table)
+```
+</details>
+
+While variables like **duration** and **previous** show correlation, these may not reflect causality - longer calls could be a result of interest rather than a cause of success.
+
+**C. Make business recommendations**
+
+1. Prioritize clients with previous successful contact or longer call durations
+
+Allocate more effort to clients with a history of previous contacts and ensure call durations exceed 7 minutes (or 420 seconds), as these patterns are linked with higher campaign success.
+<details>
+<summary><strong>Show boxplot: Call duration vs outcome</strong></summary>
+```{r duration-boxplot, echo=FALSE,message=FALSE,warning=FALSE}
+plot_ly(clean_data, y = ~duration, color = ~y, type = "box") %>%
+  layout(title = "Call Duration by Campaign Outcome",
+         yaxis = list(title = "Duration (seconds)"),
+         xaxis = list(title = "Campaign Outcome"))
+```
+</details>
+<details>
+<summary><strong>Show correlation: Duration vs Previous</strong></summary>
+```{r duration-previous-correlation, echo=FALSE,message=FALSE,warning=FALSE}
+cor.test(clean_data$duration, clean_data$previous, method = "kendall", use = "complete.obs")
+```
+</details>
+<details>
+<summary><strong>Show summary table: Mean duration and previous by outcome</strong></summary>
+```{r summary-table, echo=FALSE,message=FALSE,warning=FALSE}
+clean_data %>%
+  group_by(y) %>%
+  summarise(
+    mean_duration = round(mean(duration, na.rm = TRUE), 1),
+    median_duration = round(median(duration, na.rm = TRUE), 1),
+    mean_previous = round(mean(previous, na.rm = TRUE), 1),
+    .groups = "drop"
+  ) %>%
+  kable(caption = "Mean & Median Duration and Previous Contact by Campaign Outcome")
+```
+</details>
+
+2. Target students and retired clients more actively
+
+Future campaigns should focus on students and retirees, as these groups had the highest success rates despite being smaller segments.
+<details>
+<summary><strong>Show bar chart: Campaign outcome by job type</strong></summary>
+```{r job-yes-bar,echo=FALSE,message=FALSE,warning=FALSE}
+job_summary <- clean_data %>%
+  group_by(job, y) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(job) %>%
+  mutate(prop = n / sum(n))
+
+plot_ly(job_summary,
+        x = ~job, y = ~prop, color = ~y, type = "bar") %>%
+  layout(
+    barmode = "stack",
+    title = "Proportion of Campaign Outcomes by Job Type",
+    xaxis = list(title = "Job Type", tickangle = -45),
+    yaxis = list(title = "Proportion of Responses"),
+    legend = list(title = list(text = "<b>Outcome</b>"))
+  )
+```
+</details>
