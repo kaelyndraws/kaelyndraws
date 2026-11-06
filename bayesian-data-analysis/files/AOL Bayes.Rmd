@@ -1,0 +1,232 @@
+---
+title: "AOL1"
+author: "Daniel Graceko Miracle"
+date: "2025-12-02"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r}
+# Bayesian logistic regression pipeline for tsunami prediction
+# File: bayes_tsunami_analysis.R
+# Prasyarat: install.packages(c("tidyverse","brms","bayesplot","loo","rjags","coda","gridExtra"))
+# NOTE: if using cmdstanr, follow its installation instructions for brms backend.
+
+library(tidyverse)
+library(brms)       # interface to Stan
+library(bayesplot)  # plotting MCMC
+library(loo)        # WAIC, LOO
+library(coda)
+library(gridExtra)
+```
+```{r}
+library(readr)
+df <- read_csv("earthquake_data_tsunami.csv")
+view(df)
+```
+```{r}
+# Quick look
+glimpse(df)
+# Ensure tsunami is 0/1 numeric
+df <- df %>%
+  mutate(tsunami = as.integer(tsunami),
+         Year = as.integer(Year),
+         Month = as.integer(Month))
+```
+```{r}
+# 2. Choose predictors
+# Based on available columns: magnitude, depth, dmin, gap, mmi, cdi, sig, nst, etc.
+# I'll build a reasonably simple yet meaningful model; you can vary predictors.
+formula_brms <- bf(tsunami ~ magnitude + depth + dmin + gap + mmi + cdi + sig)
+```
+
+```{r}
+# 3. Priors (explainable, weakly-informative)
+priors <- c(
+  set_prior("normal(0, 2.5)", class = "b"),        # coefficients
+  set_prior("normal(0, 5)", class = "Intercept")  # intercept
+)
+```
+
+```{r}
+# 4. Fit Bayesian logistic regression with brms (Stan)
+# Increase iter/warmup if needed; set adapt_delta to avoid divergences
+fit_brms <- brm(
+  formula = formula_brms,
+  data = df,
+  family = bernoulli(link = "logit"),
+  prior = priors,
+  chains = 4,
+  iter = 4000,      # 4000 iterations per chain (1000 warmup default if warmup not set)
+  warmup = 1000,
+  cores = parallel::detectCores(),
+  control = list(adapt_delta = 0.95, max_treedepth = 15),
+  seed = 1234,
+  refresh = 100
+)
+
+# Save model
+saveRDS(fit_brms, file = "fit_brms_tsunami.rds")
+```
+
+
+
+```{r}
+# 5. Convergence diagnostics
+print(fit_brms)          # Rhat, bulk/tail ess
+summary(fit_brms)
+
+# Traceplots (use posterior draws)
+mcmc_trace(as.array(fit_brms), pars = c("b_Intercept", "b_magnitude", "b_depth", "b_dmin", "b_gap", "b_mmi", "b_cdi", "b_sig"))
+# Also rank plots
+mcmc_rank_overlay(as.array(fit_brms), pars = c("b_magnitude","b_depth","b_dmin"))
+```
+
+```{r}
+# 6. Posterior summary & credible intervals
+posterior_summary <- posterior_summary(fit_brms)   # mean, sd, quantiles, Rhat
+posterior_summary
+
+# plot intervals
+mcmc_intervals(as.array(fit_brms), pars = c("b_magnitude", "b_depth", "b_dmin", "b_gap", "b_mmi", "b_cdi", "b_sig"))
+
+```
+
+```{r}
+# 7. Posterior predictive checks (PPC)
+pp_check(fit_brms, nsamples = 100)          # default: overlay predictive distribution on observed
+pp_check(fit_brms, type = "bars")           # for binary outcomes: bar-plot check of proportion 1s
+pp_check(fit_brms, type = "hist", nsamples = 50)
+```
+
+```{r}
+# 8. Model fit statistics: WAIC and LOO
+# brms offers loo() and waic() wrappers; these use pointwise log-likelihood
+waic_fit <- waic(fit_brms)
+loo_fit  <- loo(fit_brms)
+
+waic_fit
+loo_fit
+
+# Note: for loo, check pareto_k diagnostics
+print(loo_fit$diagnostics)   # to check problem observations (Pareto k)
+
+```
+
+```{r}
+# 9. ROC/AUC and accuracy (posterior predictive approach)
+# Get posterior predicted probabilities for each observation (posterior predictive mean)
+pp <- posterior_epred(fit_brms, re_formula = NA) # matrix draws x N
+pp_mean <- apply(pp, 2, mean)                     # mean predicted prob per obs
+pred_class <- ifelse(pp_mean > 0.5, 1, 0)
+conf_mat <- table(Predicted = pred_class, Actual = df$tsunami)
+conf_mat
+
+# AUC: use pROC if available
+if (requireNamespace("pROC", quietly = TRUE)) {
+  library(pROC)
+  roc_obj <- roc(df$tsunami, pp_mean)
+  print(auc(roc_obj))
+  plot(roc_obj, main = "ROC curve (posterior mean predictions)")
+}
+```
+
+```{r}
+# 10. OPTIONAL: compute DIC via JAGS (because brms/stan do not directly give DIC)
+# If you want DIC, run an equivalent JAGS model (MCMC) and compute DIC:
+run_DIC_via_JAGS <- FALSE
+if (run_DIC_via_JAGS) {
+  # build model string
+  jags_model_string <- "
+  model {
+    for (i in 1:N) {
+      y[i] ~ dbern(p[i])
+      logit(p[i]) <- beta0 + inprod(beta[], X[i,])
+    }
+    beta0 ~ dnorm(0, 1.0/25)      # normal(0,5^2) precision = 1/25
+    for (j in 1:K) {
+      beta[j] ~ dnorm(0, 1.0/6.25)  # normal(0,2.5^2)
+    }
+  }"
+  # Prepare data for JAGS
+  # pick same covariates order as formula
+  Xmat <- as.matrix(df %>% select(magnitude, depth, dmin, gap, mmi, cdi, sig))
+  jags_data <- list(N = nrow(df), K = ncol(Xmat), y = df$tsunami, X = Xmat)
+  jags_mod <- jags.model(textConnection(jags_model_string), data = jags_data, n.chains = 3, quiet = FALSE)
+  update(jags_mod, n.iter = 2000)   # burn-in
+  dic_out <- dic.samples(jags_mod, n.iter = 5000, type = "pD")
+  print(dic_out)
+}
+```
+
+```{r}
+# 11. Save important outputs
+saveRDS(list(posterior_summary = posterior_summary, waic = waic_fit, loo = loo_fit, pp_mean = pp_mean, conf_mat = conf_mat),
+        file = "bayes_tsunami_results.rds")
+```
+
+```{r}
+# 12. Quick textual report pieces (to copy into the paper)
+cat("\n=== Quick model summary ===\n")
+print(posterior_summary)
+cat("\nWAIC:\n"); print(waic_fit)
+cat("\nLOO:\n"); print(loo_fit)
+cat("\nConfusion matrix (posterior mean cutoff 0.5):\n")
+print(conf_mat)
+```
+
+```{r}
+# Load the Fit Bayesian model from the RDS file (not important)
+fit_brms <- readRDS("fit_brms_tsunami.rds")
+
+# Check that it loaded properly
+print(fit_brms)
+summary(fit_brms)
+```
+
+```{r}
+#  LOAD BAYESIAN TSUNAMI MODEL & RESULTS (RDS FILES) (not important)
+# ============================================================
+
+# 2. Read the brms model
+fit_brms <- readRDS("fit_brms_tsunami.rds")
+
+# 3. Read the results list (posterior summary, WAIC, LOO, pp_mean, conf_mat)
+bayes_results <- readRDS("bayes_tsunami_results.rds")
+
+# ============================================================
+# 4. Check contents
+# ============================================================
+print(names(bayes_results))
+# Expected:
+# "posterior_summary" "waic" "loo" "pp_mean" "conf_mat"
+
+# ============================================================
+# 5. Extract objects
+# ============================================================
+
+posterior_summary <- bayes_results$posterior_summary
+waic_fit          <- bayes_results$waic
+loo_fit           <- bayes_results$loo
+pp_mean           <- bayes_results$pp_mean
+conf_mat          <- bayes_results$conf_mat
+
+# ============================================================
+# 6. Display results
+# ============================================================
+
+cat("\n===== POSTERIOR SUMMARY =====\n")
+print(posterior_summary)
+
+cat("\n===== WAIC =====\n")
+print(waic_fit)
+
+cat("\n===== LOO =====\n")
+print(loo_fit)
+
+cat("\n===== Confusion Matrix (Posterior Predictions) =====\n")
+print(conf_mat)
+```
+
