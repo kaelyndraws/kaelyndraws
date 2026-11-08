@@ -66,12 +66,12 @@ These findings describe statistical associations and do not establish causal eff
    The regression model explained approximately **34.5% of the observed variation in academic grades**.
 
   The remaining variation was not explained by the three predictors included in the model.
-3. Regression Coefficients
-| Predictor | Coefficient | p-value | Statistically Significant (α = 0.05) |
-| --- | --- | --- | --- |
-| Grammar Test Score | 0.1001 | 0.004 | Yes |
-| Beelingua Course Level | 0.0802 | 0.318 | No |
-| English Language Habits | 0.0077 | 0.709 | No |
+  3. Regression Coefficients
+  | Predictor | Coefficient | p-value | Statistically Significant (α = 0.05) |
+  | --- | --- | --- | --- |
+  | Grammar Test Score | 0.1001 | 0.004 | Yes |
+  | Beelingua Course Level | 0.0802 | 0.318 | No |
+  | English Language Habits | 0.0077 | 0.709 | No |
 
 ## Limitations
 - **Convenience Sampling**: Participants were recruited through accessible student networks rather than probability-based sampling.
