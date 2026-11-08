@@ -45,6 +45,7 @@ These findings describe statistical associations and do not establish causal eff
 
 ## Results
 1. Correlation Analysis
+   
    All three independent variables showed positive correlations with academic performance.
    | Variable | Pearson Correlation with Academic Grade |
    | --- | --- |
