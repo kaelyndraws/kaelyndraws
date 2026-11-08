@@ -66,6 +66,7 @@ These findings describe statistical associations and do not establish causal eff
    The regression model explained approximately **34.5% of the observed variation in academic grades**.
 
   The remaining variation was not explained by the three predictors included in the model.
+  
   3. Regression Coefficients
   | Predictor | Coefficient | p-value | Statistically Significant (α = 0.05) |
   | --- | --- | --- | --- |
